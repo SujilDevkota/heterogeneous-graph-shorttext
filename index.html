@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HGAT for Short-Text News Classification — Sujil Devkota (2021)</title>
+<meta name="description" content="Applying a Heterogeneous Graph Attention Network (HGAT) to semi-supervised short-text news classification: enriching node features with pretrained word2vec embeddings on a document/topic/entity graph. M.Sc. thesis, 2021 — Sujil Devkota.">
+<style>
+  :root{
+    color-scheme: light dark;
+    --paper:#F5F7FB;      --panel:#FFFFFF;      --sunken:#EEF2F8;
+    --ink:#141A24;        --muted:#5A6980;      --faint:#8A97AB;
+    --line:#DCE3EE;       --line-strong:#C7D1E0;
+    --accent:#2B4ACB;     --accent-soft:#E4E9FB;
+    --doc:#3B82C4;        --topic:#2E9E6E;      --entity:#DB8A2E;
+    --critical:#D2354F;   --major:#D9862B;      --minor:#64748B;
+    --crit-soft:#FBE6EA;  --maj-soft:#FaEFDD;   --min-soft:#EDF1F6;
+    --grid:rgba(43,74,203,.045);
+    --shadow:0 1px 2px rgba(20,26,36,.04), 0 8px 24px rgba(20,26,36,.06);
+    --serif:"Charter","Iowan Old Style","Palatino Linotype","Palatino",Georgia,Cambria,serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --maxw:74rem; --prose:44rem;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#0C0F16;    --panel:#141922;      --sunken:#10141C;
+      --ink:#E7ECF4;      --muted:#98A5BA;      --faint:#6C7A90;
+      --line:#232C3A;     --line-strong:#313C4E;
+      --accent:#7690FF;   --accent-soft:#1B2440;
+      --doc:#5AA0DE;      --topic:#49B98A;      --entity:#E7A44E;
+      --critical:#F0637C; --major:#EAA24C;      --minor:#8B99AE;
+      --crit-soft:#2A1720;--maj-soft:#241B10;   --min-soft:#171D27;
+      --grid:rgba(118,144,255,.05);
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --paper:#F5F7FB;--panel:#FFFFFF;--sunken:#EEF2F8;--ink:#141A24;--muted:#5A6980;--faint:#8A97AB;
+    --line:#DCE3EE;--line-strong:#C7D1E0;--accent:#2B4ACB;--accent-soft:#E4E9FB;
+    --doc:#3B82C4;--topic:#2E9E6E;--entity:#DB8A2E;--critical:#D2354F;--major:#D9862B;--minor:#64748B;
+    --crit-soft:#FBE6EA;--maj-soft:#FAEFDD;--min-soft:#EDF1F6;--grid:rgba(43,74,203,.045);
+    --shadow:0 1px 2px rgba(20,26,36,.04),0 8px 24px rgba(20,26,36,.06);
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --paper:#0C0F16;--panel:#141922;--sunken:#10141C;--ink:#E7ECF4;--muted:#98A5BA;--faint:#6C7A90;
+    --line:#232C3A;--line-strong:#313C4E;--accent:#7690FF;--accent-soft:#1B2440;
+    --doc:#5AA0DE;--topic:#49B98A;--entity:#E7A44E;--critical:#F0637C;--major:#EAA24C;--minor:#8B99AE;
+    --crit-soft:#2A1720;--maj-soft:#241B10;--min-soft:#171D27;--grid:rgba(118,144,255,.05);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:32px 32px;background-position:center top;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.12;text-wrap:balance;letter-spacing:-.01em}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(1.1rem,4vw,2.4rem)}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .mono{font-family:var(--mono)}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---- top bar ---- */
+  header.bar{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--paper) 82%,transparent);
+    backdrop-filter:saturate(160%) blur(10px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;gap:1.2rem;height:56px}
+  .brand{display:flex;align-items:center;gap:.6rem;font-family:var(--mono);font-weight:600;font-size:.85rem;letter-spacing:.02em}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--doc);box-shadow:14px 0 0 -1px var(--topic),28px 0 0 -1px var(--entity);margin-right:30px;flex:0 0 auto}
+  .bar nav{margin-left:auto;display:flex;gap:1.3rem;align-items:center}
+  .bar nav a{color:var(--muted);font-size:.82rem;font-weight:500}
+  .bar nav a:hover{color:var(--ink);text-decoration:none}
+  .themebtn{background:var(--sunken);border:1px solid var(--line);color:var(--muted);width:34px;height:30px;border-radius:8px;cursor:pointer;font-size:.9rem;display:grid;place-items:center}
+  .themebtn:hover{color:var(--ink);border-color:var(--line-strong)}
+  @media(max-width:720px){.bar nav a:not(.pill){display:none}}
+
+  /* ---- hero ---- */
+  .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+  #graph{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+  .hero .wrap{position:relative;z-index:2;padding-top:clamp(3rem,7vw,5.5rem);padding-bottom:clamp(3rem,7vw,5rem)}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:2rem;align-items:center}
+  @media(max-width:860px){.hero-grid{grid-template-columns:1fr}}
+  .hero h1{font-size:clamp(2.1rem,5.4vw,3.5rem);margin:.7rem 0 0}
+  .hero .lede{font-size:1.12rem;color:var(--muted);max-width:34rem;margin:1.1rem 0 0}
+  .hero .cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.8rem}
+  .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.62rem 1.05rem;border-radius:10px;font-size:.9rem;font-weight:600;border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.06);text-decoration:none}
+  .btn.ghost{background:var(--panel);border-color:var(--line-strong);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--accent);text-decoration:none}
+  .legend{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:1.6rem;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:.4rem}
+  .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  .papercard{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:1.5rem 1.5rem 1.3rem}
+  .papercard .k{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .papercard h3{font-size:1.16rem;margin:.5rem 0 .2rem;line-height:1.25}
+  .papercard .by{font-size:.86rem;color:var(--muted)}
+  .papercard .meta{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem}
+  .tag{font-family:var(--mono);font-size:.68rem;padding:.22rem .5rem;border-radius:6px;background:var(--sunken);color:var(--muted);border:1px solid var(--line)}
+
+  /* ---- sections ---- */
+  section{padding:clamp(3.2rem,7vw,5.5rem) 0}
+  .sec-head{max-width:var(--prose);margin-bottom:2.2rem}
+  .sec-head h2{font-size:clamp(1.7rem,3.6vw,2.35rem);margin:.55rem 0 0}
+  .sec-head p{color:var(--muted);margin:.8rem 0 0;font-size:1.05rem}
+  .prose{max-width:var(--prose)}
+  .prose p{margin:0 0 1.05rem}
+
+  /* verdict */
+  .verdict{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--critical);border-radius:14px;padding:1.5rem 1.6rem;box-shadow:var(--shadow)}
+  .verdict .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--critical);font-weight:700}
+  .verdict p{margin:.6rem 0 0;color:var(--ink)}
+  .verdict strong{color:var(--ink)}
+  .ladder-venue{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:1.4rem}
+  @media(max-width:640px){.ladder-venue{grid-template-columns:1fr}}
+  .vtier{background:var(--sunken);border:1px solid var(--line);border-radius:11px;padding:.9rem 1rem}
+  .vtier .t{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .vtier .n{font-family:var(--serif);font-size:1.05rem;margin-top:.25rem;font-weight:600}
+  .vtier .d{font-size:.82rem;color:var(--muted);margin-top:.2rem}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+  @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:1.2rem 1.25rem;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .stat .big{font-family:var(--serif);font-size:2.5rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+  .stat .cap{font-size:.83rem;color:var(--muted);margin-top:.4rem}
+  .stat.crit .big{color:var(--critical)} .stat.maj .big{color:var(--major)} .stat.min .big{color:var(--minor)}
+  .stat .rail{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .stat.crit .rail{background:var(--critical)} .stat.maj .rail{background:var(--major)} .stat.min .rail{background:var(--minor)} .stat.acc .rail{background:var(--accent)} .stat.acc .big{color:var(--accent)}
+
+  /* findings */
+  .findings{display:grid;grid-template-columns:repeat(2,1fr);gap:1.1rem}
+  @media(max-width:820px){.findings{grid-template-columns:1fr}}
+  .finding{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.25rem 1.35rem;box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease}
+  .finding:hover{transform:translateY(-3px);border-color:var(--line-strong)}
+  .finding .top{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
+  .sev{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:.2rem .5rem;border-radius:6px}
+  .sev.critical{background:var(--crit-soft);color:var(--critical)}
+  .chip{font-family:var(--mono);font-size:.66rem;color:var(--faint);margin-left:auto}
+  .finding h3{font-size:1.06rem;margin:0 0 .4rem;line-height:1.28}
+  .finding p{margin:0;font-size:.93rem;color:var(--muted)}
+  .finding code{font-family:var(--mono);font-size:.82em;background:var(--sunken);padding:.08em .35em;border-radius:5px;color:var(--ink)}
+  .verified{display:inline-flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.66rem;color:var(--topic);margin-top:.8rem;font-weight:600}
+
+  /* table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:520px}
+  caption{caption-side:bottom;font-size:.8rem;color:var(--muted);padding:.9rem 1rem;text-align:left}
+  th,td{padding:.7rem 1rem;text-align:left;border-bottom:1px solid var(--line);font-size:.92rem}
+  thead th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  tbody tr:last-child td{border-bottom:none}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+  tr.hi td{background:var(--accent-soft)}
+  tr.ours td{background:var(--crit-soft)}
+  .barcell{position:relative}
+  .barcell .fill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--accent) 16%,transparent);z-index:0}
+  .barcell span{position:relative;z-index:1}
+
+  /* roadmap */
+  .road{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem}
+  @media(max-width:820px){.road{grid-template-columns:1fr}}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.3rem;box-shadow:var(--shadow)}
+  .phase .p{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.08em;color:#fff;display:inline-block;padding:.2rem .55rem;border-radius:6px}
+  .phase.p0 .p{background:var(--topic)} .phase.p1 .p{background:var(--major)} .phase.p2 .p{background:var(--accent)}
+  .phase h3{font-size:1.1rem;margin:.7rem 0 .5rem}
+  .phase ul{margin:0;padding-left:1.1rem;color:var(--muted);font-size:.9rem}
+  .phase li{margin:.35rem 0}
+
+  /* scope / abstract */
+  .abswrap{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:1.6rem;align-items:start}
+  @media(max-width:820px){.abswrap{grid-template-columns:1fr}}
+  .abstract{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.6rem 1.7rem;box-shadow:var(--shadow);font-size:1rem}
+  .abstract p{margin:0 0 1rem}
+  .abstract .ttl{font-family:var(--serif);font-size:1.3rem;font-weight:600;line-height:1.25;margin-bottom:.9rem}
+  .scope-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.7rem}
+  .scope-list li{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:.85rem 1rem;font-size:.9rem;color:var(--muted);display:flex;gap:.7rem}
+  .scope-list b{color:var(--ink);font-weight:600}
+  .scope-list .m{font-family:var(--mono);color:var(--accent);font-weight:700}
+
+  /* deliverables */
+  .files{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+  @media(max-width:760px){.files{grid-template-columns:1fr}}
+  .file{display:flex;gap:.9rem;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.05rem 1.15rem;box-shadow:var(--shadow)}
+  .file:hover{border-color:var(--accent);text-decoration:none}
+  .file .ic{font-family:var(--mono);font-size:.66rem;font-weight:700;padding:.35rem .5rem;border-radius:7px;background:var(--sunken);color:var(--accent);border:1px solid var(--line);white-space:nowrap;margin-top:.1rem}
+  .file .nm{font-weight:600;color:var(--ink);font-size:.95rem}
+  .file .ds{font-size:.82rem;color:var(--muted);margin-top:.15rem}
+  .file .pth{font-family:var(--mono);font-size:.72rem;color:var(--faint);margin-top:.35rem;word-break:break-all}
+
+  footer{border-top:1px solid var(--line);padding:2.4rem 0 3rem;color:var(--muted);font-size:.86rem}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
+  .disclaim{max-width:38rem;font-size:.8rem;color:var(--faint);margin-top:.4rem}
+
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none}}
+  .no-js .reveal{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand"><span class="dot" aria-hidden="true"></span> HGAT&nbsp;·&nbsp;Short-Text News</div>
+    <nav>
+      <a href="#verdict">Overview</a>
+      <a href="#findings">Method</a>
+      <a href="#sota">Results</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#paper">Paper</a>
+      <a href="#files">Files</a>
+      <button class="themebtn" id="themebtn" aria-label="Toggle color theme" title="Toggle theme">◐</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <canvas id="graph" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">M.Sc. thesis &nbsp;·&nbsp; Sujil Devkota &nbsp;·&nbsp; 2021</div>
+        <h1>A heterogeneous graph attention network for short-text news classification.</h1>
+        <p class="lede">Short news headlines are hard to classify: they carry little context and labels are scarce. This work represents a news corpus as a graph of documents, topics, and entities, and classifies it semi-supervised with HGAT — enriching the graph's node features with pretrained word2vec embeddings to lift accuracy under few labels.</p>
+        <div class="cta">
+          <a class="btn primary" href="#verdict">Read the overview</a>
+          <a class="btn ghost" href="#files">Get the deliverables</a>
+        </div>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background:var(--doc)"></i> Document node</span>
+          <span><i style="background:var(--topic)"></i> Topic node (LDA)</span>
+          <span><i style="background:var(--entity)"></i> Entity node (TAGME)</span>
+        </div>
+      </div>
+      <aside class="papercard reveal">
+        <div class="k">The paper</div>
+        <h3>Pretrained-Embedding Node Initialization for Heterogeneous-Graph Semi-Supervised Short-Text News Classification</h3>
+        <div class="by">Sujil Devkota, Aman Shakya &middot; IEEEtran format &middot; 2021</div>
+        <div class="meta">
+          <span class="tag">HGAT</span><span class="tag">semi-supervised</span>
+          <span class="tag">short text</span><span class="tag">node features</span>
+          <span class="tag">AG&nbsp;News</span><span class="tag">HuffPost-5</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<main>
+
+<!-- VERDICT -->
+<section id="verdict">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Overview</div>
+      <h2>The approach, in short.</h2>
+      <p>Text classification needs labeled data, which is expensive; short news headlines make it harder still, since a few words give little to learn from. Representing the corpus as a rich graph lets a small number of labels propagate to many unlabeled documents.</p>
+    </div>
+    <div class="verdict reveal">
+      <div class="lbl">■ In one paragraph</div>
+      <p>Each news document is connected to the <strong>topics</strong> it covers (from LDA) and the <strong>entities</strong> it mentions (from Wikipedia entity linking), forming a heterogeneous graph of three node types. HGAT embeds this graph with node- and type-level attention and classifies documents transductively. The contribution is at the node-feature stage: replacing sparse TF-IDF features with dense pretrained <code>word2vec</code> embeddings for document and entity nodes. On a 6,000-document AG News subset and a HuffPost News Category subset, this lifts accuracy over the TF-IDF-initialized baseline by <strong>4.2</strong> and <strong>2.8</strong> points.</p>
+      <div class="ladder-venue">
+        <div class="vtier"><div class="t">The idea</div><div class="n">Richer node features</div><div class="d">Pretrained embeddings on a fixed HGAT graph.</div></div>
+        <div class="vtier"><div class="t">The setting</div><div class="n">Semi-supervised</div><div class="d">Transductive, few labels per class.</div></div>
+        <div class="vtier"><div class="t">The result</div><div class="n">+4.2 / +2.8 points</div><div class="d">Over the TF-IDF-initialized HGAT.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat acc reveal"><span class="rail"></span><div class="big num">76.3<span style="font-size:1.4rem">%</span></div><div class="cap">AG News accuracy with embedding-initialized nodes</div></div>
+      <div class="stat maj reveal"><span class="rail"></span><div class="big num">+4.2</div><div class="cap">Points over the TF-IDF-initialized baseline (AG News)</div></div>
+      <div class="stat min reveal"><span class="rail"></span><div class="big num">3</div><div class="cap">Node types — Document · Topic · Entity</div></div>
+      <div class="stat crit reveal"><span class="rail"></span><div class="big num">6,000</div><div class="cap">Documents per corpus, few labels per class</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINDINGS -->
+<section id="findings">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Method at a glance</div>
+      <h2>How the pipeline is put together.</h2>
+      <p>Raw news text is turned into a heterogeneous graph, each node type is given features, and HGAT embeds and classifies it. The pieces:</p>
+    </div>
+    <div class="findings">
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--accent-soft);color:var(--accent)">Graph</span><span class="chip">D · T · E</span></div>
+        <h3>Three node types</h3>
+        <p>Document, Topic, and Entity nodes, joined by document–topic, document–entity, and entity–entity edges. The topic and entity nodes add the context that short headlines lack.</p>
+      </article>
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--accent-soft);color:var(--accent)">Contribution</span><span class="chip">node features</span></div>
+        <h3>Pretrained word2vec features</h3>
+        <p>Entity nodes use Google-News <code>word2vec</code> vectors and document nodes a centroid of their word vectors — dense, low-dimensional features in place of sparse TF-IDF, keeping the rest of HGAT unchanged.</p>
+      </article>
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--accent-soft);color:var(--accent)">Model</span><span class="chip">attention</span></div>
+        <h3>Dual-level attention</h3>
+        <p>HGAT aggregates neighbors with both node-level attention (which neighbor matters) and type-level attention (which node type matters), so document, topic, and entity signals are weighted appropriately.</p>
+      </article>
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--accent-soft);color:var(--accent)">Signals</span><span class="chip">entities · topics</span></div>
+        <h3>Entities and topics</h3>
+        <p>Entities come from TAGME (Wikipedia entity linking); topics come from LDA. Two documents are related when they share entities or topics, forming the meta-paths the model reasons over.</p>
+      </article>
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--accent-soft);color:var(--accent)">Setup</span><span class="chip">transductive</span></div>
+        <h3>Semi-supervised training</h3>
+        <p>The whole corpus graph is available during training; only a few labels per class are used, and test documents provide unlabeled structure. Two datasets: an AG News subset and a HuffPost News Category subset.</p>
+      </article>
+      <article class="finding reveal">
+        <div class="top"><span class="sev" style="background:var(--min-soft);color:var(--minor)">Limitation</span><span class="chip">variance</span></div>
+        <h3>Single-run results</h3>
+        <p>Results come from one seed and split. Transductive GNNs at small label budgets vary a few points across seeds, so repeating over multiple seeds is the natural way to firm up the numbers.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- SOTA -->
+<section id="sota" style="background:var(--sunken);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Results</div>
+      <h2>The gain from richer node features.</h2>
+      <p>Holding the HGAT graph and architecture fixed, pretrained-embedding node features improve accuracy over the TF-IDF-initialized baseline on both datasets — <strong>+4.2</strong> points on AG News and <strong>+2.8</strong> on HuffPost, under a few labels per class.</p>
+    </div>
+    <div class="tablewrap reveal">
+      <table>
+        <caption>Test accuracy (%) with pretrained-embedding vs. TF-IDF node features on the same graph. Highlighted rows are this work; single run.</caption>
+        <thead><tr><th>Dataset</th><th>Node features</th><th style="text-align:right">Accuracy (%)</th></tr></thead>
+        <tbody>
+          <tr><td>AG News</td><td>TF-IDF <span class="mono" style="color:var(--faint)">(HGAT baseline)</span></td><td class="n barcell"><span class="fill" style="width:72.1%"></span><span>72.10</span></td></tr>
+          <tr class="hi"><td>AG News</td><td>word2vec <span class="mono" style="color:var(--faint)">(this work)</span></td><td class="n barcell"><span class="fill" style="width:76.3%"></span><span>76.30</span></td></tr>
+          <tr><td>HuffPost</td><td>TF-IDF <span class="mono" style="color:var(--faint)">(baseline)</span></td><td class="n barcell"><span class="fill" style="width:56.75%"></span><span>56.75</span></td></tr>
+          <tr class="hi"><td>HuffPost</td><td>word2vec <span class="mono" style="color:var(--faint)">(this work)</span></td><td class="n barcell"><span class="fill" style="width:59.57%"></span><span>59.57</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Contributions &amp; scope</div>
+      <h2>What the work delivers, and its bounds.</h2>
+      <p>A focused study: enrich the node features of a proven short-text graph model and measure the effect under label scarcity. What it sets out to do, what it does not, and where it can go next.</p>
+    </div>
+    <div class="road">
+      <div class="phase p0 reveal">
+        <span class="p">Contributions</span>
+        <h3>What the work delivers</h3>
+        <ul>
+          <li>Pretrained-embedding node features for HGAT</li>
+          <li>A document/topic/entity graph pipeline for news</li>
+          <li>A gain over the TF-IDF baseline on two datasets</li>
+          <li>Results reported at few labels per class</li>
+        </ul>
+      </div>
+      <div class="phase p1 reveal">
+        <span class="p">Scope</span>
+        <h3>What it does not claim</h3>
+        <ul>
+          <li>No change to the HGAT architecture itself</li>
+          <li>Single-run results, not multi-seed averages</li>
+          <li>Two news corpora, not a full benchmark suite</li>
+          <li>A transductive, not inductive, setting</li>
+        </ul>
+      </div>
+      <div class="phase p2 reveal">
+        <span class="p">Future work</span>
+        <h3>Natural next steps</h3>
+        <ul>
+          <li>Averaging over seeds and more label budgets</li>
+          <li>Contextual embeddings for node features</li>
+          <li>A neural topic model in place of LDA</li>
+          <li>More short-text datasets and an inductive variant</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAPER -->
+<section id="paper" style="background:var(--sunken);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">The paper</div>
+      <h2>Scoped to exactly what the evidence supports.</h2>
+    </div>
+    <div class="abswrap">
+      <div class="abstract reveal">
+        <div class="ttl">Abstract</div>
+        <p>Short-text news classification is difficult because headlines are semantically sparse and labeled data are scarce. This paper does not propose a new architecture; it studies a single isolable design choice in HGAT: how the graph’s nodes are initialized. We keep the graph schema and dual-level attention fixed and replace high-dimensional TF-IDF node features with low-dimensional pretrained embeddings for entity and document nodes.</p>
+        <p>On a 6,000-document AG News subset and a HuffPost News Category subset, the embedding-initialized model reaches 76.30% and 59.57% accuracy in a transductive semi-supervised setting, improving over the TF-IDF-initialized HGAT by 4.20 and 2.82 points. Results are reported as single-run measurements, with a dedicated limitations section. This manuscript documents the author’s M.Sc. thesis work.</p>
+      </div>
+      <ul class="scope-list">
+        <li><span class="m">01</span><span><b>Focused contribution.</b> Node-feature initialization; the HGAT architecture is credited to Linmei et al.</span></li>
+        <li><span class="m">02</span><span><b>Complete method.</b> The graph construction and dual-level attention are specified in full.</span></li>
+        <li><span class="m">03</span><span><b>Clear reporting.</b> Single-run results, with each row’s setup stated in the table.</span></li>
+        <li><span class="m">04</span><span><b>Stated limits.</b> A dedicated section covers what the setting does and does not establish.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FILES -->
+<section id="files">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Deliverables</div>
+      <h2>Everything in this repository.</h2>
+      <p>The paper, thesis, and slides open in the browser; the dataset opens on GitHub.</p>
+    </div>
+    <div class="files">
+      <a class="file" href="paper/ieee-paper.pdf" target="_blank" rel="noopener">
+        <span class="ic">PDF</span>
+        <span><span class="nm">IEEE paper</span><span class="ds">The IEEE-format manuscript, ready to read.</span><span class="pth">paper/ieee-paper.pdf</span></span>
+      </a>
+      <a class="file" href="paper/thesis.pdf" target="_blank" rel="noopener">
+        <span class="ic">PDF</span>
+        <span><span class="nm">Final MSc thesis</span><span class="ds">The full thesis (Tribhuvan University, IOE Pulchowk).</span><span class="pth">paper/thesis.pdf</span></span>
+      </a>
+      <a class="file" href="slides/hgat-short-text-classification.pdf" target="_blank" rel="noopener">
+        <span class="ic">SLIDES</span>
+        <span><span class="nm">Presentation slides</span><span class="ds">Defense slides — opens in the browser.</span><span class="pth">slides/hgat-short-text-classification.pdf</span></span>
+      </a>
+      <a class="file" href="https://github.com/SujilDevkota/heterogeneous-graph-shorttext/tree/main/data/ag_news" target="_blank" rel="noopener">
+        <span class="ic">DATA</span>
+        <span><span class="nm">AG News data</span><span class="ds">The AG News corpus the 6,000-doc subset was drawn from.</span><span class="pth">data/ag_news/</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="brand" style="font-size:.9rem"><span class="dot" aria-hidden="true"></span>&nbsp; HGAT · Short-Text News</div>
+      <p class="disclaim">“Heterogeneous Graph Attention Network for Semi-Supervised News Classification” — M.Sc. thesis, Department of Electronics and Computer Engineering, Tribhuvan University, IOE Pulchowk Campus.</p>
+    </div>
+    <div style="font-family:var(--mono);font-size:.76rem;color:var(--faint);text-align:right">
+      M.Sc. thesis · 2019–2021<br>Sujil Devkota
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  root.classList.remove('no-js');
+  // ---- theme toggle ----
+  var btn=document.getElementById('themebtn');
+  function cur(){ return root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }
+  btn.addEventListener('click',function(){
+    var next=cur()==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('hgat-theme',next);}catch(e){}
+    draw && draw.recolor();
+  });
+  try{var s=localStorage.getItem('hgat-theme'); if(s) root.setAttribute('data-theme',s);}catch(e){}
+
+  // ---- scroll reveal (with failsafe so nothing can stay hidden) ----
+  var reveals=[].slice.call(document.querySelectorAll('.reveal'));
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+    reveals.forEach(function(el){io.observe(el);});
+    setTimeout(function(){reveals.forEach(function(el){el.classList.add('in');});},1600);
+  } else {
+    reveals.forEach(function(el){el.classList.add('in');});
+  }
+
+  // ---- hero heterogeneous graph ----
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas=document.getElementById('graph'), ctx=canvas.getContext('2d');
+  var hero=document.querySelector('.hero'), W=0,H=0,DPR=Math.min(2,window.devicePixelRatio||1);
+  function css(v){return getComputedStyle(root).getPropertyValue(v).trim();}
+  var COL={};
+  function recolor(){ COL={doc:css('--doc'),topic:css('--topic'),entity:css('--entity'),line:css('--line-strong'),acc:css('--accent')}; }
+  var nodes=[], edges=[];
+  function build(){
+    nodes=[]; edges=[];
+    var types=[['doc',9],['topic',4],['entity',12]];
+    types.forEach(function(t){ for(var i=0;i<t[1];i++){ nodes.push({t:t[0]}); } });
+    nodes.forEach(function(n){
+      n.x=Math.random()*W; n.y=Math.random()*H;
+      n.vx=(Math.random()-.5)*.14; n.vy=(Math.random()-.5)*.14;
+      n.r = n.t==='doc'?5.5 : n.t==='topic'?7 : 3.6;
+    });
+    // connect: docs to a couple of topics + entities; entity-entity a few
+    var docs=nodes.filter(n=>n.t==='doc'), tops=nodes.filter(n=>n.t==='topic'), ents=nodes.filter(n=>n.t==='entity');
+    docs.forEach(function(d){
+      link(d, tops[(Math.random()*tops.length)|0]);
+      var k=1+(Math.random()*2|0);
+      for(var i=0;i<k;i++) link(d, ents[(Math.random()*ents.length)|0]);
+    });
+    for(var i=0;i<8;i++) link(ents[(Math.random()*ents.length)|0], ents[(Math.random()*ents.length)|0]);
+    edges.forEach(function(e){ e.ph=Math.random()*Math.PI*2; });
+  }
+  function link(a,b){ if(a&&b&&a!==b) edges.push({a:a,b:b,ph:0}); }
+  function resize(){
+    var r=hero.getBoundingClientRect(); W=r.width; H=r.height;
+    canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    build();
+  }
+  function colorFor(t){ return COL[t]||COL.doc; }
+  var t0=performance.now();
+  function frame(now){
+    var dt=Math.min(40, now-(frame._l||now)); frame._l=now;
+    ctx.clearRect(0,0,W,H);
+    // physics: gentle drift + soft bounds
+    nodes.forEach(function(n){
+      n.x+=n.vx*dt; n.y+=n.vy*dt;
+      if(n.x<0||n.x>W) n.vx*=-1; if(n.y<0||n.y>H) n.vy*=-1;
+      n.x=Math.max(0,Math.min(W,n.x)); n.y=Math.max(0,Math.min(H,n.y));
+    });
+    // edges + attention pulse
+    edges.forEach(function(e){
+      ctx.strokeStyle=COL.line; ctx.globalAlpha=.28; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(e.a.x,e.a.y); ctx.lineTo(e.b.x,e.b.y); ctx.stroke();
+      if(!reduce){
+        var p=(Math.sin(now/1400+e.ph)+1)/2;
+        var px=e.a.x+(e.b.x-e.a.x)*p, py=e.a.y+(e.b.y-e.a.y)*p;
+        ctx.globalAlpha=.5; ctx.fillStyle=COL.acc;
+        ctx.beginPath(); ctx.arc(px,py,1.6,0,7); ctx.fill();
+      }
+    });
+    ctx.globalAlpha=1;
+    // nodes
+    nodes.forEach(function(n){
+      var c=colorFor(n.t);
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,7);
+      ctx.fillStyle=c; ctx.globalAlpha=.9; ctx.fill();
+      ctx.globalAlpha=.22; ctx.beginPath(); ctx.arc(n.x,n.y,n.r+4,0,7); ctx.fillStyle=c; ctx.fill();
+      ctx.globalAlpha=1;
+    });
+    if(!reduce) raf=requestAnimationFrame(frame);
+  }
+  var raf, draw={recolor:function(){recolor();}};
+  recolor();
+  if(canvas.getContext){
+    resize();
+    window.addEventListener('resize',function(){cancelAnimationFrame(raf); resize(); if(!reduce) raf=requestAnimationFrame(frame); else frame(performance.now());});
+    if(reduce){ frame(performance.now()); } else { raf=requestAnimationFrame(frame); }
+  }
+})();
+</script>
+</body>
+</html>
