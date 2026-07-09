@@ -25,3 +25,8 @@ Thumbs.db
 
 # LaTeX source kept local only, not published
 paper/ieee-paper.tex
+
+# Python venv and run artifacts (code/)
+code/.venv/
+code/artifacts/
+code/**/__pycache__/

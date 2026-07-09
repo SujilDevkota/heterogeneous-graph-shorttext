@@ -1,0 +1,38 @@
+# Configuration for the modern HGAT short-text news classification pipeline.
+# Mirrors the settings described in the paper where possible.
+
+seed: 42
+
+data:
+  csv: ../data/ag_news/train.csv     # source AG News corpus (class,title,description)
+  classes: [World, Sports, Business, "Sci/Tech"]
+  docs_per_class: 1500               # 6,000-document balanced subset (paper)
+  labels_per_class_train: 40         # few-label semi-supervised setting (paper: 40/class)
+  labels_per_class_val: 40
+
+topics:
+  n_topics: 15                       # paper: K = 15 for AG News
+  doc_topic_prior: 0.1               # alpha (paper)
+  topic_word_prior: 0.1              # beta (paper)
+  max_iter: 40
+  vocab_size: 2000                   # cap topic-word feature dim (BoW vocabulary)
+  min_df: 5
+  top_topics_per_doc: 2              # paper: top-2 topics per document
+
+entities:
+  min_len: 2
+  entity_entity_sim: 0.5             # paper: cosine > 0.5 for entity-entity edges
+  min_degree: 5                      # connect each entity to >= this many neighbours (top-k backfill)
+
+model:
+  hidden: 128                        # (paper used 512; 128 is lighter and sufficient here)
+  dropout: 0.5                       # paper reported 0.95; 0.5 is the more standard value
+  gamma: 0.5                         # node-attention vs. adjacency blend (paper code: 0.1)
+  lr: 0.005                          # paper
+  weight_decay: 5.0e-6               # paper reference implementation
+  epochs: 200                        # paper: 300
+  patience: 40                       # early stopping on validation accuracy
+  seeds: [42, 1, 2, 3, 4]            # multiple runs -> mean +/- std (addresses single-run limitation)
+
+paths:
+  work_dir: artifacts                # where intermediate arrays / results are written
