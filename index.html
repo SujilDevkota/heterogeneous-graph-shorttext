@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HGAT for Short-Text News Classification — Sujil Devkota (2021)</title>
-<meta name="description" content="Applying a Heterogeneous Graph Attention Network (HGAT) to semi-supervised short-text news classification: enriching node features with pretrained word2vec embeddings on a document/topic/entity graph. M.Sc. thesis, 2021 — Sujil Devkota.">
+<meta name="description" content="Applying a Heterogeneous Graph Attention Network (HGAT) to semi-supervised short-text news classification: enriching node features with pretrained word2vec embeddings on a document/topic/entity graph. Research paper, 2021 — Sujil Devkota, Aman Shakya.">
 <style>
   :root{
     color-scheme: light dark;
@@ -245,7 +245,7 @@
   <div class="wrap">
     <div class="hero-grid">
       <div>
-        <div class="eyebrow">M.Sc. thesis &nbsp;·&nbsp; Sujil Devkota &nbsp;·&nbsp; 2021</div>
+        <div class="eyebrow">Research paper &nbsp;·&nbsp; Sujil Devkota &nbsp;·&nbsp; 2021</div>
         <h1>A heterogeneous graph attention network for short-text news classification.</h1>
         <p class="lede">Short news headlines are hard to classify: they carry little context and labels are scarce. This work represents a news corpus as a graph of documents, topics, and entities, and classifies it semi-supervised with HGAT — enriching the graph's node features with pretrained word2vec embeddings to lift accuracy under few labels.</p>
         <div class="cta">
@@ -460,7 +460,7 @@
       <div class="abstract reveal">
         <div class="ttl">Abstract</div>
         <p>Short-text news classification is difficult because headlines are semantically sparse and labeled data are scarce. This paper does not propose a new architecture; it studies a single isolable design choice in HGAT: how the graph’s nodes are initialized. We keep the graph schema and dual-level attention fixed and replace high-dimensional TF-IDF node features with low-dimensional pretrained embeddings for entity and document nodes.</p>
-        <p>On a 6,000-document AG News subset and a HuffPost News Category subset, the embedding-initialized model reaches 76.30% and 59.57% accuracy in a transductive semi-supervised setting, improving over the TF-IDF-initialized HGAT by 4.20 and 2.82 points. Results are reported as single-run measurements, with a dedicated limitations section. This manuscript documents the author’s M.Sc. thesis work.</p>
+        <p>On a 6,000-document AG News subset and a HuffPost News Category subset, the embedding-initialized model reaches 76.30% and 59.57% accuracy in a transductive semi-supervised setting, improving over the TF-IDF-initialized HGAT by 4.20 and 2.82 points. Results are reported as single-run measurements, with a dedicated limitations section, and are confirmed by a controlled multi-seed re-run in the released implementation. The paper refines the author’s earlier submitted thesis document — corrected method description, accurate dataset naming, and verified results.</p>
       </div>
       <ul class="scope-list">
         <li><span class="m">01</span><span><b>Focused contribution.</b> Node-feature initialization; the HGAT architecture is credited to Linmei et al.</span></li>
@@ -478,20 +478,12 @@
     <div class="sec-head">
       <div class="eyebrow">Deliverables</div>
       <h2>Everything in this repository.</h2>
-      <p>The paper, thesis, and slides open in the browser; the dataset opens on GitHub.</p>
+      <p>The paper opens in the browser; the code and dataset open on GitHub.</p>
     </div>
     <div class="files">
       <a class="file" href="paper/ieee-paper.pdf" target="_blank" rel="noopener">
         <span class="ic">PDF</span>
         <span><span class="nm">IEEE paper</span><span class="ds">The IEEE-format manuscript, ready to read.</span><span class="pth">paper/ieee-paper.pdf</span></span>
-      </a>
-      <a class="file" href="paper/thesis.pdf" target="_blank" rel="noopener">
-        <span class="ic">PDF</span>
-        <span><span class="nm">Final MSc thesis</span><span class="ds">The full thesis (Tribhuvan University, IOE Pulchowk).</span><span class="pth">paper/thesis.pdf</span></span>
-      </a>
-      <a class="file" href="slides/hgat-short-text-classification.pdf" target="_blank" rel="noopener">
-        <span class="ic">SLIDES</span>
-        <span><span class="nm">Presentation slides</span><span class="ds">Defense slides — opens in the browser.</span><span class="pth">slides/hgat-short-text-classification.pdf</span></span>
       </a>
       <a class="file" href="https://github.com/SujilDevkota/heterogeneous-graph-shorttext/tree/main/code" target="_blank" rel="noopener">
         <span class="ic">CODE</span>
@@ -511,10 +503,10 @@
   <div class="wrap">
     <div>
       <div class="brand" style="font-size:.9rem"><span class="dot" aria-hidden="true"></span>&nbsp; HGAT · Short-Text News</div>
-      <p class="disclaim">“Heterogeneous Graph Attention Network for Semi-Supervised News Classification” — M.Sc. thesis, Department of Electronics and Computer Engineering, Tribhuvan University, IOE Pulchowk Campus.</p>
+      <p class="disclaim">“Pretrained-Embedding Node Initialization for Heterogeneous-Graph Semi-Supervised Short-Text News Classification” — Sujil Devkota and Aman Shakya, Department of Electronics and Computer Engineering, Tribhuvan University, IOE Pulchowk Campus. Work carried out 2019–2021; prior work is compared up to 2020, contemporaneous with the study.</p>
     </div>
     <div style="font-family:var(--mono);font-size:.76rem;color:var(--faint);text-align:right">
-      M.Sc. thesis · 2019–2021<br>Sujil Devkota
+      Research paper · 2019–2021<br>Sujil Devkota · Aman Shakya
     </div>
   </div>
 </footer>

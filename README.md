@@ -1,8 +1,8 @@
 # Heterogeneous Graph Attention Networks for Short-Text News Classification
 
-Semi-supervised short-text **news classification** with a **Heterogeneous Graph Attention Network (HGAT)**. This repository accompanies an M.Sc. thesis (Tribhuvan University, Institute of Engineering, Pulchowk Campus, 2021), presented as an IEEE-format paper, a project website, and the dataset used.
+Semi-supervised short-text **news classification** with a **Heterogeneous Graph Attention Network (HGAT)**. This repository presents the paper *Pretrained-Embedding Node Initialization for Heterogeneous-Graph Semi-Supervised Short-Text News Classification* (2021) — the IEEE-format manuscript, a project website, a runnable implementation, and the dataset used. The paper refines the author's earlier submitted thesis document (corrected method description, accurate dataset naming, verified results); prior work is compared up to 2020, contemporaneous with the study.
 
-**Author:** Sujil Devkota · **Thesis supervisor:** Dr. Aman Shakya
+**Authors:** Sujil Devkota, Aman Shakya (Tribhuvan University, Institute of Engineering, Pulchowk Campus)
 **Base model:** HGAT — Linmei Hu et al., *“Heterogeneous Graph Attention Networks for Semi-supervised Short Text Classification,”* EMNLP 2019 / ACM TOIS 2021.
 
 🌐 **Project site:** https://sujildevkota.github.io/heterogeneous-graph-shorttext/
@@ -21,8 +21,6 @@ The specific question studied here is **node-feature initialization**: replacing
 |------|----------|
 | [`index.html`](index.html) | Project website (served via GitHub Pages) — overview, method, results, and scope. |
 | [`paper/ieee-paper.pdf`](paper/ieee-paper.pdf) | The IEEE-format manuscript. |
-| [`paper/thesis.pdf`](paper/thesis.pdf) | The final MSc thesis. |
-| [`slides/`](slides/) | Presentation slides (`.pptx` and `.pdf`). |
 | [`code/`](code/) | A modern, runnable Python re-implementation of the pipeline (see [`code/README.md`](code/README.md)). |
 | [`data/ag_news/`](data/ag_news/) | The AG News corpus used (see the folder README for details). |
 
@@ -47,7 +45,7 @@ and seeds, with only the node features changed:
 | TF-IDF (baseline) | 79.48 ± 1.19 |
 | **Pretrained embeddings (proposed)** | **84.38 ± 0.47** |
 
-**Gain: +4.90 points** (paired t = 8.33, p = 0.0011) — confirming the thesis's
+**Gain: +4.90 points** (paired t = 8.33, p = 0.0011) — confirming the paper's
 finding under a multi-seed protocol. Each mode takes ~5 minutes on a laptop.
 The graph structure and HGAT model are faithful to the paper; TAGME and
 Google-News word2vec are swapped for offline equivalents (spaCy NER + GloVe
@@ -56,19 +54,19 @@ vectors) so it runs with no API key or large download. See
 
 ## Data
 
-- **AG News** (`data/ag_news/`): the standard 4-class news corpus (120k train / 7.6k test). The thesis used a **random 6,000-document balanced subset** (1,500 per class) sampled from this. See [`data/ag_news/README.md`](data/ag_news/README.md).
+- **AG News** (`data/ag_news/`): the standard 4-class news corpus (120k train / 7.6k test). The paper used a **random 6,000-document balanced subset** (1,500 per class) sampled from this. See [`data/ag_news/README.md`](data/ag_news/README.md).
 - **HuffPost News Category** (5-class subset): the second dataset is Misra's *News Category Dataset* (Kaggle). It is **not redistributed here** — download it from the source. *(Note: earlier drafts called this "TagMyNews"; it is the HuffPost corpus, a different dataset from the TagMyNews benchmark of Vitale et al. 2012.)*
 
 ## Scope & limitations
 
 The paper is scoped as a study of node-feature initialization on a fixed HGAT graph, and reports its results as single-run measurements. Its limitations are stated in the paper's *Limitations and Future Work* section, chiefly:
 
-- Results are single-run (one seed, one split); no variance or significance test.
+- The 2021 results are single-run (one seed, one split) — now addressed by the released implementation's multi-seed controlled comparison (see above).
 - The AG News baseline is quoted from the base paper; the HuffPost comparison is a matched re-run.
-- No ablation isolates the feature change from the graph.
+- The 2021 experiments had no ablation isolating the feature change — now provided by the two feature modes in `code/`.
 - The setting is transductive, and efficiency is not measured.
 
-Natural next steps — multi-seed evaluation, contextual embeddings for node features, a neural topic model, and an inductive variant — are noted as future work.
+Remaining next steps — contextual embeddings for node features, a neural topic model, and an inductive variant — are noted as future work.
 
 ## Acknowledgements
 
@@ -76,13 +74,14 @@ Built on the HGAT model and reference implementation of Linmei Hu, Tianchi Yang,
 
 ## Citation
 
-If you refer to this work, please cite the MSc thesis:
+If you refer to this work, please cite the paper:
 
 ```bibtex
-@mastersthesis{devkota2021hgat,
-  author = {Sujil Devkota},
-  title  = {Heterogeneous Graph Attention Network for Semi-Supervised News Classification},
-  school = {Institute of Engineering, Pulchowk Campus, Tribhuvan University},
-  year   = {2021}
+@misc{devkota2021hgat,
+  author       = {Sujil Devkota and Aman Shakya},
+  title        = {Pretrained-Embedding Node Initialization for Heterogeneous-Graph
+                  Semi-Supervised Short-Text News Classification},
+  year         = {2021},
+  howpublished = {\url{https://github.com/SujilDevkota/heterogeneous-graph-shorttext}}
 }
 ```
