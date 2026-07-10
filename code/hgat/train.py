@@ -68,13 +68,22 @@ def run_once(graph: GraphData, cfg: dict, seed: int, device) -> dict:
 
 
 def run_multi(graph: GraphData, cfg: dict, device) -> dict:
+    """Train once per seed and aggregate.
+
+    The corpus subset, label split, LDA topics, and graph are built once with
+    the config seed; the per-seed loop varies model initialisation and dropout
+    only. The reported std therefore reflects model-side variance on a fixed
+    split (the two feature modes share the identical graph and splits, which is
+    what makes their comparison controlled).
+    """
     graph = _to_device(graph, device)
     runs = [run_once(graph, cfg, s, device) for s in cfg["model"]["seeds"]]
     accs = np.array([r["acc"] for r in runs])
     f1s = np.array([r["f1"] for r in runs])
+    ddof = 1 if len(runs) > 1 else 0            # unbiased sample std over seeds
     return {
         "runs": runs,
-        "acc_mean": float(accs.mean()), "acc_std": float(accs.std()),
-        "f1_mean": float(f1s.mean()), "f1_std": float(f1s.std()),
+        "acc_mean": float(accs.mean()), "acc_std": float(accs.std(ddof=ddof)),
+        "f1_mean": float(f1s.mean()), "f1_std": float(f1s.std(ddof=ddof)),
         "acc_best": float(accs.max()),
     }

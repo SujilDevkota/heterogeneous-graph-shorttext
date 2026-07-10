@@ -19,10 +19,9 @@ import numpy as np
 import scipy.sparse as sp
 import torch
 
+from .features import _l2
 from .preprocess import ProcessedCorpus
 from .topics import TopicModel
-
-TYPES = ["text", "entity", "topic"]
 
 
 @dataclass
@@ -35,11 +34,6 @@ class GraphData:
     idx_test: torch.Tensor
     dims: list[int]
     counts: list[int]                      # [n_text, n_entity, n_topic]
-
-
-def _l2(x: np.ndarray) -> np.ndarray:
-    n = np.linalg.norm(x, axis=1, keepdims=True)
-    return x / (n + 1e-12)
 
 
 def _sym_normalize(adj: sp.csr_matrix) -> sp.csr_matrix:
@@ -73,12 +67,19 @@ def _entity_entity_edges(names: list[str], vecs: np.ndarray, cfg: dict) -> list[
     return list(edges)
 
 
-def build_graph(dataset, corpus: ProcessedCorpus, topics: TopicModel, cfg: dict) -> GraphData:
+def used_entities(corpus: ProcessedCorpus) -> list[str]:
+    """Entities that appear in >=1 document and carry a vector (the entity nodes)."""
+    return sorted({e for ents in corpus.doc_entities for e in ents
+                   if e in corpus.entity_vectors})
+
+
+def build_graph(dataset, corpus: ProcessedCorpus, topics: TopicModel,
+                cfg: dict, feats: list[np.ndarray],
+                used: list[str] | None = None) -> GraphData:
     n_text = dataset.n_docs
 
-    # ---- entity nodes: keep entities that appear in >=1 document and have a vector ----
-    used = sorted({e for ents in corpus.doc_entities for e in ents
-                   if e in corpus.entity_vectors})
+    if used is None:
+        used = used_entities(corpus)
     eid = {name: k for k, name in enumerate(used)}
     n_entity = len(used)
     entity_vecs = np.stack([corpus.entity_vectors[n] for n in used]).astype(np.float32) \
@@ -136,16 +137,12 @@ def build_graph(dataset, corpus: ProcessedCorpus, topics: TopicModel, cfg: dict)
             row_blocks.append(_to_torch_sparse(adj_norm[r0:r1, c0:c1]))
         blocks.append(row_blocks)
 
-    # ---- features (L2 for embeddings, L1 for the topic distribution) ----
-    feats = [
-        torch.tensor(_l2(corpus.doc_vectors), dtype=torch.float32),
-        torch.tensor(_l2(entity_vecs) if n_entity else entity_vecs, dtype=torch.float32),
-        torch.tensor(topics.topic_word, dtype=torch.float32),
-    ]
-    dims = [f.shape[1] for f in feats]
+    # ---- features (precomputed by hgat.features for the chosen mode) ----
+    feat_tensors = [torch.tensor(f, dtype=torch.float32) for f in feats]
+    dims = [f.shape[1] for f in feat_tensors]
 
     return GraphData(
-        feats=feats,
+        feats=feat_tensors,
         adj=blocks,
         labels=torch.tensor(dataset.labels, dtype=torch.long),
         idx_train=torch.tensor(dataset.idx_train, dtype=torch.long),

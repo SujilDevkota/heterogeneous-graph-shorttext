@@ -6,7 +6,6 @@ scikit-learn>=1.4
 spacy>=3.7
 scipy>=1.11
 numpy>=1.26
-pandas>=2.0
 tqdm>=4.66
 pyyaml>=6.0
 # en_core_web_lg (spaCy model) provides both NER and 300-d GloVe vectors:

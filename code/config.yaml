@@ -24,6 +24,10 @@ entities:
   entity_entity_sim: 0.5             # paper: cosine > 0.5 for entity-entity edges
   min_degree: 5                      # connect each entity to >= this many neighbours (top-k backfill)
 
+features:
+  mode: embedding                    # embedding (proposed) | tfidf (baseline) — the studied variable
+  tfidf_vocab: 2000                  # vocabulary size for the TF-IDF baseline
+
 model:
   hidden: 128                        # (paper used 512; 128 is lighter and sufficient here)
   dropout: 0.5                       # paper reported 0.95; 0.5 is the more standard value

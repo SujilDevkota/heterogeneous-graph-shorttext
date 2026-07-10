@@ -25,25 +25,32 @@ def segment_softmax(scores: torch.Tensor, index: torch.Tensor, n: int) -> torch.
 
 
 class NodeAttention(nn.Module):
-    """Node-level attention on one (target, source) adjacency block."""
+    """Node-level attention on one (target, source) adjacency block.
 
-    def __init__(self, dim: int, gamma: float):
+    With ``learn=False`` this is plain normalised-adjacency propagation and no
+    attention parameters are created (used by layer 2, matching the original
+    HGAT where the second layer is a graph convolution).
+    """
+
+    def __init__(self, dim: int, gamma: float, learn: bool = True):
         super().__init__()
-        self.a_tgt = nn.Parameter(torch.empty(dim, 1))
-        self.a_src = nn.Parameter(torch.empty(dim, 1))
-        nn.init.xavier_uniform_(self.a_tgt)
-        nn.init.xavier_uniform_(self.a_src)
+        self.learn = learn
+        if learn:
+            self.a_tgt = nn.Parameter(torch.empty(dim, 1))
+            self.a_src = nn.Parameter(torch.empty(dim, 1))
+            nn.init.xavier_uniform_(self.a_tgt)
+            nn.init.xavier_uniform_(self.a_src)
         self.gamma = gamma
         self.leaky = nn.LeakyReLU(0.2)
 
-    def forward(self, h_tgt, h_src, block, use_attention: bool):
+    def forward(self, h_tgt, h_src, block):
         n_tgt = h_tgt.size(0)
         if block._nnz() == 0:
             return h_tgt.new_zeros(n_tgt, h_src.size(1))
         idx = block.indices()
         w = block.values()                       # normalised adjacency weight per edge
         i, j = idx[0], idx[1]
-        if use_attention:
+        if self.learn:
             e = self.leaky((h_tgt @ self.a_tgt).squeeze(-1)[i]
                            + (h_src @ self.a_src).squeeze(-1)[j])
             att = segment_softmax(e, i, n_tgt)
@@ -81,9 +88,10 @@ class HeteroLayer(nn.Module):
     def __init__(self, in_dims, out_dim, gamma, use_node_attention: bool):
         super().__init__()
         self.n_types = len(in_dims)
-        self.use_node_attention = use_node_attention
         self.proj = nn.ModuleList([nn.Linear(d, out_dim, bias=False) for d in in_dims])
-        self.node_att = nn.ModuleList([NodeAttention(out_dim, gamma) for _ in in_dims])
+        self.node_att = nn.ModuleList(
+            [NodeAttention(out_dim, gamma, learn=use_node_attention) for _ in in_dims]
+        )
         self.type_att = nn.ModuleList(
             [TypeAttention(out_dim, 32, self.n_types, t) for t in range(self.n_types)]
         )
@@ -92,7 +100,7 @@ class HeteroLayer(nn.Module):
         h = [self.proj[t](feats[t]) for t in range(self.n_types)]
         out = []
         for t1 in range(self.n_types):
-            msgs = [self.node_att[t1](h[t1], h[t2], adj[t1][t2], self.use_node_attention)
+            msgs = [self.node_att[t1](h[t1], h[t2], adj[t1][t2])
                     for t2 in range(self.n_types)]
             out.append(self.type_att[t1](torch.stack(msgs, dim=1)))
         return out
