@@ -197,6 +197,15 @@
   .file .ds{font-size:.82rem;color:var(--muted);margin-top:.15rem}
   .file .pth{font-family:var(--mono);font-size:.72rem;color:var(--faint);margin-top:.35rem;word-break:break-all}
 
+  /* architecture animation */
+  .archwrap{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:1.1rem 1.1rem .9rem;overflow:hidden}
+  #archcanvas{width:100%;height:400px;display:block}
+  @media(max-width:640px){#archcanvas{height:330px}}
+  .archsteps{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.9rem;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+  .archsteps span{display:inline-flex;align-items:center;gap:.45rem;padding:.32rem .7rem;border:1px solid var(--line);border-radius:999px;background:var(--sunken);transition:color .3s ease,border-color .3s ease}
+  .archsteps span.on{color:var(--accent);border-color:var(--accent)}
+  .archsteps i{font-style:normal;font-weight:700}
+
   footer{border-top:1px solid var(--line);padding:2.4rem 0 3rem;color:var(--muted);font-size:.86rem}
   footer .wrap{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
   .disclaim{max-width:38rem;font-size:.8rem;color:var(--faint);margin-top:.4rem}
@@ -215,6 +224,7 @@
     <nav>
       <a href="#verdict">Overview</a>
       <a href="#findings">Method</a>
+      <a href="#arch">Architecture</a>
       <a href="#sota">Results</a>
       <a href="#roadmap">Roadmap</a>
       <a href="#paper">Paper</a>
@@ -268,11 +278,11 @@
     </div>
     <div class="verdict reveal">
       <div class="lbl">■ In one paragraph</div>
-      <p>Each news document is connected to the <strong>topics</strong> it covers (from LDA) and the <strong>entities</strong> it mentions (from Wikipedia entity linking), forming a heterogeneous graph of three node types. HGAT embeds this graph with node- and type-level attention and classifies documents transductively. The contribution is at the node-feature stage: replacing sparse TF-IDF features with dense pretrained <code>word2vec</code> embeddings for document and entity nodes. On a 6,000-document AG News subset and a HuffPost News Category subset, this lifts accuracy over the TF-IDF-initialized baseline by <strong>4.2</strong> and <strong>2.8</strong> points.</p>
+      <p>Each news document is connected to the <strong>topics</strong> it covers (from LDA) and the <strong>entities</strong> it mentions (from Wikipedia entity linking), forming a heterogeneous graph of three node types. HGAT embeds this graph with node- and type-level attention and classifies documents transductively. The contribution is at the node-feature stage: replacing sparse TF-IDF features with dense pretrained <code>word2vec</code> embeddings for document and entity nodes. On a 6,000-document AG News subset and a HuffPost News Category subset, this lifts accuracy over the TF-IDF-initialized baseline by <strong>4.2</strong> and <strong>2.8</strong> points. A released re-implementation re-runs the AG News comparison controlled — identical graph, splits, and seeds, averaged over five seeds — and confirms the effect: <strong>+4.9</strong> points (paired p&nbsp;=&nbsp;0.0011).</p>
       <div class="ladder-venue">
         <div class="vtier"><div class="t">The idea</div><div class="n">Richer node features</div><div class="d">Pretrained embeddings on a fixed HGAT graph.</div></div>
         <div class="vtier"><div class="t">The setting</div><div class="n">Semi-supervised</div><div class="d">Transductive, few labels per class.</div></div>
-        <div class="vtier"><div class="t">The result</div><div class="n">+4.2 / +2.8 points</div><div class="d">Over the TF-IDF-initialized HGAT.</div></div>
+        <div class="vtier"><div class="t">The result</div><div class="n">+4.9 points, verified</div><div class="d">Controlled 5-seed re-run (2021 single-run: +4.2 / +2.8).</div></div>
       </div>
     </div>
   </div>
@@ -282,8 +292,8 @@
 <section style="padding-top:0">
   <div class="wrap">
     <div class="stats">
-      <div class="stat acc reveal"><span class="rail"></span><div class="big num">76.3<span style="font-size:1.4rem">%</span></div><div class="cap">AG News accuracy with embedding-initialized nodes</div></div>
-      <div class="stat maj reveal"><span class="rail"></span><div class="big num">+4.2</div><div class="cap">Points over the TF-IDF-initialized baseline (AG News)</div></div>
+      <div class="stat acc reveal"><span class="rail"></span><div class="big num">84.4<span style="font-size:1.4rem">%</span></div><div class="cap">AG News accuracy with embedding features — verified re-run, 5 seeds</div></div>
+      <div class="stat maj reveal"><span class="rail"></span><div class="big num">+4.9</div><div class="cap">Points over the TF-IDF baseline, controlled (p&nbsp;=&nbsp;0.0011)</div></div>
       <div class="stat min reveal"><span class="rail"></span><div class="big num">3</div><div class="cap">Node types — Document · Topic · Entity</div></div>
       <div class="stat crit reveal"><span class="rail"></span><div class="big num">6,000</div><div class="cap">Documents per corpus, few labels per class</div></div>
     </div>
@@ -333,13 +343,33 @@
   </div>
 </section>
 
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Architecture</div>
+      <h2>How one document gets classified.</h2>
+      <p>The animation follows a single document through the model: its heterogeneous neighbourhood forms, node-level attention weighs each neighbour, type-level attention weighs each node type, and the aggregated representation is classified.</p>
+    </div>
+    <div class="archwrap reveal">
+      <canvas id="archcanvas" role="img" aria-label="Animated HGAT architecture: a document node connects to topic and entity nodes; node-level attention weighs neighbours, type-level attention weighs the three node types, and a softmax classifies the document."></canvas>
+      <div class="archsteps" id="archsteps" aria-hidden="true">
+        <span><i>1</i> Graph builds</span>
+        <span><i>2</i> Node-level attention</span>
+        <span><i>3</i> Type-level attention</span>
+        <span><i>4</i> Prediction</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- SOTA -->
 <section id="sota" style="background:var(--sunken);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
   <div class="wrap">
     <div class="sec-head">
       <div class="eyebrow">Results</div>
       <h2>The gain from richer node features.</h2>
-      <p>Holding the HGAT graph and architecture fixed, pretrained-embedding node features improve accuracy over the TF-IDF-initialized baseline on both datasets — <strong>+4.2</strong> points on AG News and <strong>+2.8</strong> on HuffPost, under a few labels per class.</p>
+      <p>Holding the HGAT graph and architecture fixed, pretrained-embedding node features improve accuracy over the TF-IDF-initialized baseline on both datasets — <strong>+4.2</strong> points on AG News and <strong>+2.8</strong> on HuffPost, under a few labels per class. The released implementation re-runs the AG News comparison under a controlled multi-seed protocol and confirms it.</p>
     </div>
     <div class="tablewrap reveal">
       <table>
@@ -353,6 +383,17 @@
         </tbody>
       </table>
     </div>
+    <div class="tablewrap reveal" style="margin-top:1.4rem">
+      <table>
+        <caption>Verified re-run in the released implementation: identical graph, splits, and seeds — only the node features change. Averaged over 5 seeds (± unbiased std). Entity linking and word vectors use offline substitutes (spaCy NER + GloVe), disclosed in the repository.</caption>
+        <thead><tr><th>Dataset</th><th>Node features</th><th style="text-align:right">Accuracy (%)</th></tr></thead>
+        <tbody>
+          <tr><td>AG News</td><td>TF-IDF <span class="mono" style="color:var(--faint)">(baseline)</span></td><td class="n barcell"><span class="fill" style="width:79.48%"></span><span>79.48 ± 1.19</span></td></tr>
+          <tr class="hi"><td>AG News</td><td>embeddings <span class="mono" style="color:var(--faint)">(this work — verified)</span></td><td class="n barcell"><span class="fill" style="width:84.38%"></span><span>84.38 ± 0.47</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="prose" style="margin-top:1.2rem;color:var(--muted);font-size:.95rem"><strong style="color:var(--ink)">Gain: +4.90 points</strong> (paired t&nbsp;=&nbsp;8.33, p&nbsp;=&nbsp;0.0011) — the same finding as the 2021 single-run experiment, now established under a controlled protocol. Reproduce it with <code style="font-family:var(--mono)">python run.py</code> and <code style="font-family:var(--mono)">python run.py --features tfidf</code> from the repository's <code style="font-family:var(--mono)">code/</code> folder.</p>
   </div>
 </section>
 
@@ -442,6 +483,10 @@
       <a class="file" href="slides/hgat-short-text-classification.pdf" target="_blank" rel="noopener">
         <span class="ic">SLIDES</span>
         <span><span class="nm">Presentation slides</span><span class="ds">Defense slides — opens in the browser.</span><span class="pth">slides/hgat-short-text-classification.pdf</span></span>
+      </a>
+      <a class="file" href="https://github.com/SujilDevkota/heterogeneous-graph-shorttext/tree/main/code" target="_blank" rel="noopener">
+        <span class="ic">CODE</span>
+        <span><span class="nm">Runnable code</span><span class="ds">Modern re-implementation; runs the verified controlled comparison.</span><span class="pth">code/</span></span>
       </a>
       <a class="file" href="https://github.com/SujilDevkota/heterogeneous-graph-shorttext/tree/main/data/ag_news" target="_blank" rel="noopener">
         <span class="ic">DATA</span>
@@ -563,6 +608,176 @@
     window.addEventListener('resize',function(){cancelAnimationFrame(raf); resize(); if(!reduce) raf=requestAnimationFrame(frame); else frame(performance.now());});
     if(reduce){ frame(performance.now()); } else { raf=requestAnimationFrame(frame); }
   }
+})();
+</script>
+<script>
+(function(){
+  // ---- HGAT architecture animation ----
+  var canvas=document.getElementById('archcanvas');
+  if(!canvas||!canvas.getContext) return;
+  var ctx=canvas.getContext('2d');
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var chips=[].slice.call(document.querySelectorAll('#archsteps span'));
+  var W=0,Hc=0,DPR=Math.min(2,window.devicePixelRatio||1),COL={},tick=0;
+  function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+  function recolor(){COL={doc:css('--doc'),topic:css('--topic'),entity:css('--entity'),acc:css('--accent'),
+    line:css('--line-strong'),faint:css('--faint'),muted:css('--muted'),ink:css('--ink'),sunken:css('--sunken')};}
+  function sizeUp(){var r=canvas.getBoundingClientRect();W=r.width;Hc=r.height;
+    canvas.width=W*DPR;canvas.height=Hc*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+  function ease(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
+  function seg(t,a,b){return ease((t-a)/(b-a));}
+  function rr(x,y,w,h,r){ctx.beginPath();
+    if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);}else{
+      ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}}
+  function tc(t){return t==='doc'?COL.doc:t==='topic'?COL.topic:COL.entity;}
+
+  var T=14000;
+  function layout(){
+    return {
+      tg:{x:W*0.17,y:Hc*0.45},
+      nbrs:[
+        {x:W*0.050,y:Hc*0.14,t:'doc',   a:0.14},
+        {x:W*0.062,y:Hc*0.76,t:'doc',   a:0.06},
+        {x:W*0.275,y:Hc*0.11,t:'topic', a:0.22},
+        {x:W*0.245,y:Hc*0.80,t:'topic', a:0.08},
+        {x:W*0.035,y:Hc*0.45,t:'entity',a:0.12},
+        {x:W*0.295,y:Hc*0.32,t:'entity',a:0.28},
+        {x:W*0.272,y:Hc*0.59,t:'entity',a:0.10}],
+      ee:[[4,6],[5,6]],
+      pills:[{y:Hc*0.20,t:'doc',   b:0.46,l:W<760?'docs':'documents'},
+             {y:Hc*0.45,t:'topic', b:0.21,l:'topics'},
+             {y:Hc*0.70,t:'entity',b:0.33,l:W<760?'ents':'entities'}],
+      px:W*0.42,pw:W*0.175,phh:Math.min(34,Hc*0.10),
+      mg:{x:W*0.665,y:Hc*0.45},
+      cx:W*0.755,cw:W*0.205,
+      cls:[{n:'World',v:0.09},{n:'Sports',v:0.71},{n:'Business',v:0.12},{n:'Sci/Tech',v:0.08}]
+    };
+  }
+
+  function draw(t){
+    if((tick++%30)===0) recolor();
+    ctx.clearRect(0,0,W,Hc);
+    var L=layout(),tg=L.tg,small=W<600,fs=small?9:11;
+    ctx.font='600 '+fs+'px ui-monospace,SFMono-Regular,Menlo,monospace';
+    var p0=seg(t,0.00,0.20),p1=seg(t,0.22,0.50),p2=seg(t,0.50,0.62),
+        p2b=seg(t,0.56,0.76),p3=seg(t,0.78,0.94);
+
+    // region captions
+    ctx.fillStyle=COL.faint;ctx.textAlign='center';
+    ctx.fillText(small?'graph':'heterogeneous graph',W*0.17,Hc*0.965);
+    ctx.fillText(small?'type attn':'type-level attention',W*0.53,Hc*0.965);
+    ctx.fillText('prediction',W*0.855,Hc*0.965);
+
+    // edges neighbour -> target (draw in P0, weight by attention in P1)
+    var n=L.nbrs.length;
+    L.nbrs.forEach(function(nb,i){
+      var d=seg(p0*n,i*0.7,i*0.7+1);if(d<=0)return;
+      ctx.strokeStyle=p1>0?tc(nb.t):COL.line;
+      ctx.globalAlpha=p1>0?0.30+nb.a*1.8:0.55;
+      ctx.lineWidth=1+(p1>0?nb.a*12*p1:0);
+      ctx.beginPath();ctx.moveTo(nb.x,nb.y);
+      ctx.lineTo(nb.x+(tg.x-nb.x)*d,nb.y+(tg.y-nb.y)*d);ctx.stroke();ctx.globalAlpha=1;
+    });
+    // entity-entity edges
+    if(p0>=1){L.ee.forEach(function(pr){var a=L.nbrs[pr[0]],b=L.nbrs[pr[1]];
+      ctx.strokeStyle=COL.line;ctx.globalAlpha=.4;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.globalAlpha=1;});}
+    // attention pulses
+    if(p1>0&&p1<1&&!reduce){L.nbrs.forEach(function(nb,i){
+      var ph=(t*4+i*0.14)%1;
+      ctx.fillStyle=tc(nb.t);ctx.globalAlpha=.9;
+      ctx.beginPath();ctx.arc(nb.x+(tg.x-nb.x)*ph,nb.y+(tg.y-nb.y)*ph,2.1,0,7);ctx.fill();
+      ctx.globalAlpha=1;});}
+    // alpha label on the strongest edge
+    if(p1>0.35&&!small){var st=L.nbrs[5];ctx.fillStyle=COL.muted;ctx.textAlign='left';
+      ctx.fillText('α',(st.x+tg.x)/2+7,(st.y+tg.y)/2-7);}
+    // neighbour nodes
+    L.nbrs.forEach(function(nb,i){
+      var d=seg(p0*n,i*0.7,i*0.7+1);if(d<=0)return;
+      var r=(nb.t==='topic'?7:nb.t==='doc'?6:5)*(0.5+0.5*d);
+      ctx.fillStyle=tc(nb.t);ctx.globalAlpha=.95;
+      ctx.beginPath();ctx.arc(nb.x,nb.y,r,0,7);ctx.fill();
+      ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(nb.x,nb.y,r+3.5,0,7);ctx.fill();ctx.globalAlpha=1;});
+    // target document node
+    var trr=9+3*p1,tcol=p3>0.55?COL.acc:COL.doc;
+    ctx.fillStyle=tcol;ctx.globalAlpha=.22+.2*p1;
+    ctx.beginPath();ctx.arc(tg.x,tg.y,trr+6,0,7);ctx.fill();
+    ctx.globalAlpha=1;ctx.beginPath();ctx.arc(tg.x,tg.y,trr,0,7);ctx.fill();
+    ctx.fillStyle=COL.ink;ctx.textAlign='center';
+    ctx.fillText('doc',tg.x,tg.y-trr-7);
+
+    // ---- type-level attention ----
+    if(p2>0){
+      ctx.strokeStyle=COL.line;ctx.globalAlpha=.8*p2;ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(W*0.325,tg.y);ctx.lineTo(L.px-10,tg.y);ctx.stroke();ctx.globalAlpha=1;
+      L.pills.forEach(function(p,i){
+        var d=seg(p2,i*0.12,0.66+i*0.12);if(d<=0)return;
+        var y=p.y-L.phh/2;
+        ctx.globalAlpha=d;
+        ctx.fillStyle=COL.sunken;rr(L.px,y,L.pw,L.phh,7);ctx.fill();
+        // beta fill
+        ctx.fillStyle=tc(p.t);ctx.globalAlpha=.35*d;
+        rr(L.px,y,Math.max(6,L.pw*Math.min(1,p.b*2)*p2b),L.phh,7);ctx.fill();
+        ctx.globalAlpha=d;ctx.strokeStyle=tc(p.t);ctx.lineWidth=1.3;rr(L.px,y,L.pw,L.phh,7);ctx.stroke();
+        ctx.fillStyle=COL.ink;ctx.textAlign='left';
+        ctx.fillText(p.l,L.px+8,p.y+fs*0.35);
+        if(p2b>0.5){ctx.fillStyle=COL.muted;ctx.textAlign='right';
+          ctx.fillText('β '+p.b.toFixed(2),L.px+L.pw-8,p.y+fs*0.35);}
+        // pill -> merge arrow
+        if(p2b>0){ctx.strokeStyle=tc(p.t);ctx.globalAlpha=.55*p2b;ctx.lineWidth=1+p.b*5*p2b;
+          ctx.beginPath();ctx.moveTo(L.px+L.pw+4,p.y);
+          var mx=L.mg.x,my=L.mg.y;
+          ctx.quadraticCurveTo((L.px+L.pw+mx)/2,p.y,mx-12*(p2b),my+(p.y-my)*(1-p2b)*0.2);
+          ctx.stroke();ctx.globalAlpha=1;}
+        ctx.globalAlpha=1;
+      });
+      // merged representation node
+      if(p2b>0.25){var md=seg(p2b,0.25,1);
+        ctx.fillStyle=COL.acc;ctx.globalAlpha=.2*md;
+        ctx.beginPath();ctx.arc(L.mg.x,L.mg.y,13,0,7);ctx.fill();
+        ctx.globalAlpha=md;ctx.beginPath();ctx.arc(L.mg.x,L.mg.y,8,0,7);ctx.fill();
+        ctx.fillStyle=COL.ink;ctx.textAlign='center';ctx.fillText('h′',L.mg.x,L.mg.y-16);
+        ctx.globalAlpha=1;}
+    }
+
+    // ---- prediction ----
+    if(p3>0){
+      ctx.strokeStyle=COL.line;ctx.globalAlpha=.8*seg(p3,0,0.3);ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(L.mg.x+12,L.mg.y);ctx.lineTo(L.cx-8,L.mg.y);ctx.stroke();ctx.globalAlpha=1;
+      var bh=Math.min(16,Hc*0.05);
+      L.cls.forEach(function(c,i){
+        var y=Hc*(0.14+i*0.185);
+        ctx.fillStyle=COL.sunken;rr(L.cx,y,L.cw,bh,4);ctx.fill();
+        ctx.strokeStyle=COL.line;ctx.lineWidth=1;rr(L.cx,y,L.cw,bh,4);ctx.stroke();
+        var win=i===1,fw=Math.max(3,L.cw*c.v*p3);
+        ctx.fillStyle=win?COL.acc:COL.line;rr(L.cx,y,fw,bh,4);ctx.fill();
+        ctx.fillStyle=win&&p3>0.85?COL.acc:COL.muted;ctx.textAlign='left';
+        ctx.fillText(small&&c.n==='Business'?'Biz':c.n,L.cx,y-5);
+        if(p3>0.85){ctx.textAlign='right';
+          ctx.fillText((c.v*100).toFixed(0)+'%',L.cx+L.cw,y-5);}
+      });
+      if(p3>0.9&&!small){ctx.fillStyle=COL.faint;ctx.textAlign='center';
+        ctx.fillText('softmax over classes',L.cx+L.cw/2,Hc*0.90);}
+    }
+
+    // step chips
+    var idx=t<0.22?0:t<0.50?1:t<0.76?2:3;
+    chips.forEach(function(c,i){c.classList.toggle('on',i===idx);});
+  }
+
+  var raf,running=false,t0=performance.now();
+  function frame(now){draw(((now-t0)%T)/T);if(running)raf=requestAnimationFrame(frame);}
+  function start(){if(running||reduce)return;running=true;t0=performance.now();raf=requestAnimationFrame(frame);}
+  function stop(){running=false;cancelAnimationFrame(raf);}
+
+  recolor();sizeUp();
+  if(reduce){draw(0.99);chips.forEach(function(c){c.classList.add('on');});}
+  else{
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){e.isIntersecting?start():stop();});},{threshold:.15});
+    io.observe(canvas);
+  }
+  window.addEventListener('resize',function(){sizeUp();if(reduce)draw(0.99);});
 })();
 </script>
 </body>
