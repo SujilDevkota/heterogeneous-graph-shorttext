@@ -201,10 +201,16 @@
   .archwrap{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:1.1rem 1.1rem .9rem;overflow:hidden}
   #archcanvas{width:100%;height:400px;display:block}
   @media(max-width:640px){#archcanvas{height:330px}}
-  .archsteps{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.9rem;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
-  .archsteps span{display:inline-flex;align-items:center;gap:.45rem;padding:.32rem .7rem;border:1px solid var(--line);border-radius:999px;background:var(--sunken);transition:color .3s ease,border-color .3s ease}
-  .archsteps span.on{color:var(--accent);border-color:var(--accent)}
-  .archsteps i{font-style:normal;font-weight:700}
+  .archsteps{display:flex;align-items:center;gap:.5rem;margin-top:1rem;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+  .archsteps button{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .75rem .3rem .35rem;border:1px solid var(--line);border-radius:999px;background:var(--sunken);color:var(--muted);font:inherit;cursor:pointer;white-space:nowrap;transition:color .25s ease,border-color .25s ease,box-shadow .25s ease}
+  .archsteps button:hover{border-color:var(--accent);color:var(--ink)}
+  .archsteps button i{font-style:normal;font-weight:700;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line-strong);color:var(--muted);font-size:.64rem;transition:background .25s ease,border-color .25s ease,color .25s ease}
+  .archsteps button em{font-style:normal}
+  .archsteps button.done i{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .archsteps button.on{color:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .archsteps button.on i{background:var(--accent);border-color:var(--accent);color:#fff}
+  .archsteps .conn{flex:1 1 26px;min-width:12px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent) calc(var(--p,0)*100%),var(--line) 0)}
+  @media(max-width:860px){.archsteps button em{display:none}.archsteps button{padding:.3rem .45rem .3rem .35rem}}
 
   footer{border-top:1px solid var(--line);padding:2.4rem 0 3rem;color:var(--muted);font-size:.86rem}
   footer .wrap{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center}
@@ -353,11 +359,14 @@
     </div>
     <div class="archwrap reveal">
       <canvas id="archcanvas" role="img" aria-label="Animated HGAT architecture: a document node connects to topic and entity nodes; node-level attention weighs neighbours, type-level attention weighs the three node types, and a softmax classifies the document."></canvas>
-      <div class="archsteps" id="archsteps" aria-hidden="true">
-        <span><i>1</i> Graph builds</span>
-        <span><i>2</i> Node-level attention</span>
-        <span><i>3</i> Type-level attention</span>
-        <span><i>4</i> Prediction</span>
+      <div class="archsteps" id="archsteps" aria-label="Animation phases — click to jump">
+        <button type="button"><i>1</i><em>Graph builds</em></button>
+        <span class="conn" aria-hidden="true"></span>
+        <button type="button"><i>2</i><em>Node-level attention</em></button>
+        <span class="conn" aria-hidden="true"></span>
+        <button type="button"><i>3</i><em>Type-level attention</em></button>
+        <span class="conn" aria-hidden="true"></span>
+        <button type="button"><i>4</i><em>Prediction</em></button>
       </div>
     </div>
   </div>
@@ -617,7 +626,9 @@
   if(!canvas||!canvas.getContext) return;
   var ctx=canvas.getContext('2d');
   var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var chips=[].slice.call(document.querySelectorAll('#archsteps span'));
+  var chips=[].slice.call(document.querySelectorAll('#archsteps button'));
+  var conns=[].slice.call(document.querySelectorAll('#archsteps .conn'));
+  var B=[0,0.22,0.50,0.76,1];    // phase boundaries
   var W=0,Hc=0,DPR=Math.min(2,window.devicePixelRatio||1),COL={},tick=0;
   function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
   function recolor(){COL={doc:css('--doc'),topic:css('--topic'),entity:css('--entity'),acc:css('--accent'),
@@ -632,7 +643,7 @@
       ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}}
   function tc(t){return t==='doc'?COL.doc:t==='topic'?COL.topic:COL.entity;}
 
-  var T=14000;
+  var T=10500;
   function layout(){
     return {
       tg:{x:W*0.17,y:Hc*0.45},
@@ -761,9 +772,16 @@
         ctx.fillText('softmax over classes',L.cx+L.cw/2,Hc*0.90);}
     }
 
-    // step chips
-    var idx=t<0.22?0:t<0.50?1:t<0.76?2:3;
-    chips.forEach(function(c,i){c.classList.toggle('on',i===idx);});
+    // stepper: active / done states + connector fill per phase
+    var idx=t<B[1]?0:t<B[2]?1:t<B[3]?2:3;
+    chips.forEach(function(c,i){
+      c.classList.toggle('on',i===idx);
+      c.classList.toggle('done',i<idx);
+    });
+    conns.forEach(function(cn,i){
+      var p=(t-B[i])/(B[i+1]-B[i]);
+      cn.style.setProperty('--p',Math.max(0,Math.min(1,p)).toFixed(3));
+    });
   }
 
   var raf,running=false,t0=performance.now();
@@ -772,11 +790,17 @@
   function stop(){running=false;cancelAnimationFrame(raf);}
 
   recolor();sizeUp();
-  if(reduce){draw(0.99);chips.forEach(function(c){c.classList.add('on');});}
+  if(reduce){draw(0.99);}
   else{
     var io=new IntersectionObserver(function(es){es.forEach(function(e){e.isIntersecting?start():stop();});},{threshold:.15});
     io.observe(canvas);
   }
+  // click a step to jump to that phase
+  chips.forEach(function(c,i){c.addEventListener('click',function(){
+    if(reduce){draw(Math.min(0.99,B[i]+(B[i+1]-B[i])*0.85));return;}
+    if(!running){running=true;raf=requestAnimationFrame(frame);}
+    t0=performance.now()-B[i]*T;
+  });});
   window.addEventListener('resize',function(){sizeUp();if(reduce)draw(0.99);});
 })();
 </script>
